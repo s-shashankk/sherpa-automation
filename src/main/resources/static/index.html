@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sherpa | Automation Hub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <h1>🧩 Sherpa</h1>
+    <p class="subtitle">Made with love</p>
+
+    <label>Validation Sheet URL</label>
+    <input id="validation" placeholder="Paste validation sheet link">
+
+    <label>Workbook Sheet URL</label>
+    <input id="workbook" placeholder="Paste workbook sheet link">
+
+    <button id="runBtn" onclick="runAutomation()">🚀 Run Automation</button>
+
+    <pre id="result">Waiting for input...</pre>
+
+    <div class="footer">Built by <strong>Shashi</strong> ⚡</div>
+</div>
+
+<script>
+async function runAutomation() {
+    const validationUrl = document.getElementById("validation").value;
+    const workbookUrl = document.getElementById("workbook").value;
+    const output = document.getElementById("result");
+    const btn = document.getElementById("runBtn");
+
+    if (!validationUrl || !workbookUrl) {
+        alert("⚠ Please enter both sheet URLs");
+        return;
+    }
+
+    output.textContent = "⏳ Running automation... please wait...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch("/api/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json"},
+            body: JSON.stringify({ validationUrl, workbookUrl })
+        });
+
+        const text = await res.text();
+        output.textContent = text;
+
+    } catch (err) {
+        output.textContent = "❌ Error: " + err.message;
+    }
+
+    btn.disabled = false;
+}
+</script>
+
+</body>
+</html>
