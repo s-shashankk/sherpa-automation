@@ -35,30 +35,29 @@ public class GoogleSheetConfig {
 //         .build();
 //    }
 	
-	@Bean(name = "dpmSheetsClient")
-	public Sheets sheetsService() throws IOException, GeneralSecurityException {
+	 @Bean(name = "dpmSheetsClient")
+	    public Sheets sheetsService() throws Exception {
 
-	    String envPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
+	        // Read env variable from Railway
+	        String envPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
 
-	    InputStream serviceAccountStream;
+	        if (envPath != null && !envPath.isBlank()) {
+	            System.out.println("☁ Using CLOUD credentials: " + envPath);
+	        } else {
+	            envPath = "src/main/resources/credentials.json";
+	            System.out.println("💻 Using LOCAL credentials: " + envPath);
+	        }
 
-	    if (envPath != null && !envPath.isBlank()) {
-	        System.out.println("🔹 Using CLOUD credentials from: " + envPath);
-	        serviceAccountStream = new FileInputStream(envPath);
-	    } else {
-	        System.out.println("🔹 Using LOCAL credentials file");
-	        serviceAccountStream = new FileInputStream("src/main/resources/credentials.json");
+	        GoogleCredentials credentials = GoogleCredentials.fromStream(new FileInputStream(envPath))
+	                .createScoped(List.of("https://www.googleapis.com/auth/spreadsheets"));
+
+	        return new Sheets.Builder(
+	                GoogleNetHttpTransport.newTrustedTransport(),
+	                GsonFactory.getDefaultInstance(),
+	                new HttpCredentialsAdapter(credentials)
+	        )
+	        .setApplicationName("Automation Hub")
+	        .build();
 	    }
-
-
-	    GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccountStream)
-	            .createScoped(List.of("https://www.googleapis.com/auth/spreadsheets"));
-
-	    return new Sheets.Builder(
-	            GoogleNetHttpTransport.newTrustedTransport(),
-	            GsonFactory.getDefaultInstance(),
-	            new HttpCredentialsAdapter(credentials)
-	    ).setApplicationName("DPM Feature Sheets Client").build();
-	}
 
 }
