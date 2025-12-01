@@ -42,13 +42,14 @@ public class GoogleSheetConfig {
 
 	    InputStream serviceAccountStream;
 
-	    if (envPath != null && new File(envPath).exists()) {
+	    if (envPath != null && !envPath.isBlank()) {
 	        System.out.println("🔹 Using CLOUD credentials from: " + envPath);
 	        serviceAccountStream = new FileInputStream(envPath);
 	    } else {
 	        System.out.println("🔹 Using LOCAL credentials file");
 	        serviceAccountStream = new FileInputStream("src/main/resources/credentials.json");
 	    }
+
 
 	    GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccountStream)
 	            .createScoped(List.of("https://www.googleapis.com/auth/spreadsheets"));
