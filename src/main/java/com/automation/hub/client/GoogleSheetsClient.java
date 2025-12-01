@@ -13,27 +13,34 @@ import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class GoogleSheetsClient {
 	
-	 private static Sheets sheetsService;
+	  private static Sheets sheetsService;
 
 	    private static Sheets getSheetsService() throws Exception {
 	        if (sheetsService == null) {
 
-	            String credentialsPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
-	            FileInputStream serviceAccountStream;
+	            // ✅ Try to read credentials JSON from environment (for Railway)
+	            String credentialsJson = System.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON");
+	            InputStream serviceAccountStream;
 
-	            if (credentialsPath != null && !credentialsPath.isEmpty()) {
-	                System.out.println("🔹 Using cloud credentials from: " + credentialsPath);
-	                serviceAccountStream = new FileInputStream(credentialsPath);
+	            if (credentialsJson != null && !credentialsJson.isEmpty()) {
+	                System.out.println("🔹 Using credentials from ENV (Railway)");
+	                serviceAccountStream =
+	                        new ByteArrayInputStream(credentialsJson.getBytes(StandardCharsets.UTF_8));
 	            } else {
+	                // ✅ Fallback for LOCAL dev with file
 	                System.out.println("🔹 Using LOCAL credentials file");
-	                serviceAccountStream = new FileInputStream("src/main/resources/credentials.json");
+	                serviceAccountStream =
+	                        new FileInputStream("src/main/resources/credentials.json");
 	            }
 
 	            GoogleCredentials googleCredentials = GoogleCredentials
