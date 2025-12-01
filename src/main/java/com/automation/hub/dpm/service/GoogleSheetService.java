@@ -1,6 +1,10 @@
 package com.automation.hub.dpm.service;
 
+import com.automation.hub.client.GoogleSheetsClient;
+
+import com.automation.hub.client.GoogleSheetsClient;
 import com.automation.hub.dpm.model.DeviceMapping;
+import com.automation.hub.service.DpmAutomationService;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
@@ -13,19 +17,29 @@ import java.util.*;
 
 @Service
 public class GoogleSheetService {
-	  @Value("${google.sheet.id}")
+
+    private final DpmAutomationService dpmAutomationService;
+	 @Value("${google.sheet.id}")
 	    private String sheetId;
 
-	    private final Sheets sheets;
+	    private Sheets sheets;
 
-	    public GoogleSheetService(@Qualifier("dpmSheetsClient") Sheets sheets) {
-	        this.sheets = sheets;
+    GoogleSheetService(DpmAutomationService dpmAutomationService) {
+        this.dpmAutomationService = dpmAutomationService;
+    }
+
+	    // ⭐ Lazy load Sheets client (works local + cloud)
+	    private Sheets getSheets() throws Exception {
+	        if (sheets == null) {
+	            sheets = GoogleSheetsClient.getSheetsService();
+	        }
+	        return sheets;
 	    }
 
-	    public List<String> groupDpmData() throws IOException {
+	    public List<String> groupDpmData() throws Exception {
 
 	        String range = "Sheet1!A3:AF";
-	        ValueRange response = sheets.spreadsheets().values().get(sheetId, range).execute();
+	        ValueRange response = getSheets().spreadsheets().values().get(sheetId, range).execute();
 	        List<List<Object>> rows = response.getValues();
 
 	        Map<String, Set<String>> map = new LinkedHashMap<>();
@@ -40,7 +54,6 @@ public class GoogleSheetService {
 	            }
 	        }
 
-	        // Format into the required string output
 	        List<String> formattedOutput = new ArrayList<>();
 
 	        map.forEach((dpm, devices) -> {

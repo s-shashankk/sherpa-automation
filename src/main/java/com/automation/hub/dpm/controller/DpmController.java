@@ -15,7 +15,7 @@ public class DpmController {
 	    }
 
 	    @GetMapping("/group")
-	    public List<String> getGroupedDetails() throws IOException {
+	    public List<String> getGroupedDetails() throws Exception {
 	        return service.groupDpmData();
 	    }
 }

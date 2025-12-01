@@ -25,7 +25,7 @@ public class GoogleSheetsClient {
 	
 	  private static Sheets sheetsService;
 
-	    private static Sheets getSheetsService() throws Exception {
+	  public static Sheets getSheetsService() throws Exception {
 	        if (sheetsService == null) {
 
 	            // ✅ Try to read credentials JSON from environment (for Railway)
