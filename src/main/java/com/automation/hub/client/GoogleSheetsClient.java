@@ -19,69 +19,105 @@ import java.util.Collections;
 import java.util.List;
 
 public class GoogleSheetsClient {
-	private static Sheets sheetsService;
+	
+	 private static Sheets sheetsService;
 
-	private static Sheets getSheetsService() throws Exception {
-		if (sheetsService == null) {
+	    private static Sheets getSheetsService() throws Exception {
+	        if (sheetsService == null) {
 
-			FileInputStream serviceAccountStream = new FileInputStream("src/main/resources/credentials.json");
+	            String credentialsPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
+	            FileInputStream serviceAccountStream;
 
-			GoogleCredentials googleCredentials = GoogleCredentials.fromStream(serviceAccountStream)
-					.createScoped(Collections.singleton(SheetsScopes.SPREADSHEETS));
+	            if (credentialsPath != null && !credentialsPath.isEmpty()) {
+	                System.out.println("🔹 Using cloud credentials from: " + credentialsPath);
+	                serviceAccountStream = new FileInputStream(credentialsPath);
+	            } else {
+	                System.out.println("🔹 Using LOCAL credentials file");
+	                serviceAccountStream = new FileInputStream("src/main/resources/credentials.json");
+	            }
 
-			sheetsService = new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(),
-					GsonFactory.getDefaultInstance(), new HttpCredentialsAdapter(googleCredentials))
-					.setApplicationName("Automation Hub").build();
-		}
-		return sheetsService;
-	}
+	            GoogleCredentials googleCredentials = GoogleCredentials
+	                    .fromStream(serviceAccountStream)
+	                    .createScoped(Collections.singleton(SheetsScopes.SPREADSHEETS));
 
-	public static List<List<Object>> readSheet(String spreadsheetId, String range) throws Exception {
-		Sheets service = getSheetsService();
-		ValueRange response = service.spreadsheets().values().get(spreadsheetId, range).execute();
+	            sheetsService = new Sheets.Builder(
+	                    GoogleNetHttpTransport.newTrustedTransport(),
+	                    GsonFactory.getDefaultInstance(),
+	                    new HttpCredentialsAdapter(googleCredentials)
+	            )
+	            .setApplicationName("Automation Hub")
+	            .build();
+	        }
+	        return sheetsService;
+	    }
 
-		return response.getValues();
-	}
-	public static List<String> readNotesForRange(String spreadsheetId, String rangeA1) throws Exception {
-        Sheets service = getSheetsService();
+	    public static List<List<Object>> readSheet(String spreadsheetId, String range) throws Exception {
+	        Sheets service = getSheetsService();
+	        ValueRange response = service.spreadsheets().values().get(spreadsheetId, range).execute();
+	        return response.getValues();
+	    }
 
-        Spreadsheet spreadsheet = service.spreadsheets()
-                .get(spreadsheetId)
-                .setRanges(Collections.singletonList(rangeA1))
-                .setIncludeGridData(true)
-                .execute();
+	    public static List<String> readNotesForRange(String spreadsheetId, String rangeA1) throws Exception {
+	        Sheets service = getSheetsService();
 
-        List<String> notes = new ArrayList<>();
+	        Spreadsheet spreadsheet = service.spreadsheets()
+	                .get(spreadsheetId)
+	                .setRanges(Collections.singletonList(rangeA1))
+	                .setIncludeGridData(true)
+	                .execute();
 
-        for (Sheet sheet : spreadsheet.getSheets()) {
-            List<GridData> dataList = sheet.getData();
-            if (dataList == null) continue;
+	        List<String> notes = new ArrayList<>();
 
-            for (GridData gridData : dataList) {
-                List<RowData> rowDataList = gridData.getRowData();
-                if (rowDataList == null) continue;
+	        for (Sheet sheet : spreadsheet.getSheets()) {
+	            List<GridData> dataList = sheet.getData();
+	            if (dataList == null) continue;
 
-                for (RowData rowData : rowDataList) {
-                    List<CellData> cellDataList = rowData.getValues();
-                    if (cellDataList == null || cellDataList.isEmpty()) {
-                        notes.add("");
-                    } else {
-                        // we requested a single column range, so first cell
-                        CellData cell = cellDataList.get(0);
-                        String note = cell.getNote();
-                        notes.add(note != null ? note : "");
-                    }
-                }
-            }
-        }
+	            for (GridData gridData : dataList) {
+	                List<RowData> rowDataList = gridData.getRowData();
+	                if (rowDataList == null) continue;
 
-        return notes;
-    }
-	public static void writeColumn(String spreadsheetId, String range, ValueRange valueRange) throws Exception {
-	    Sheets service = getSheetsService();
-	    service.spreadsheets().values()
-	            .update(spreadsheetId, range, valueRange)
-	            .setValueInputOption("USER_ENTERED")
-	            .execute();
-	}
+	                for (RowData rowData : rowDataList) {
+	                    List<CellData> cellDataList = rowData.getValues();
+	                    if (cellDataList == null || cellDataList.isEmpty()) {
+	                        notes.add("");
+	                    } else {
+	                        CellData cell = cellDataList.get(0);
+	                        String note = cell.getNote();
+	                        notes.add(note != null ? note : "");
+	                    }
+	                }
+	            }
+	        }
+
+	        return notes;
+	    }
+
+	    public static void writeColumn(String spreadsheetId, String range, ValueRange valueRange) throws Exception {
+	        Sheets service = getSheetsService();
+	        service.spreadsheets().values()
+	                .update(spreadsheetId, range, valueRange)
+	                .setValueInputOption("USER_ENTERED")
+	                .execute();
+	    }
 }
+
+	/*
+	 * private static Sheets getSheetsService() throws Exception { if (sheetsService
+	 * == null) {
+	 * 
+	 * FileInputStream serviceAccountStream = new
+	 * FileInputStream("src/main/resources/credentials.json");
+	 * 
+	 * GoogleCredentials googleCredentials =
+	 * GoogleCredentials.fromStream(serviceAccountStream)
+	 * .createScoped(Collections.singleton(SheetsScopes.SPREADSHEETS));
+	 * 
+	 * sheetsService = new
+	 * Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(),
+	 * GsonFactory.getDefaultInstance(), new
+	 * HttpCredentialsAdapter(googleCredentials))
+	 * .setApplicationName("Automation Hub").build(); } return sheetsService; }
+	 */
+
+	
+

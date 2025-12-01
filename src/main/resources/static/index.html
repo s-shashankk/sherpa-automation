@@ -6,18 +6,37 @@
 </head>
 <body>
 
+<!-- NAVBAR -->
+<div class="navbar">
+    <div class="nav-item active" onclick="switchTab('automation', this)">⚙ Automation Runner</div>
+    <div class="nav-item" onclick="switchTab('dpm', this)">📄 DPM Mapping</div>
+</div>
+
 <div class="container">
 
     <h1>🧩 Sherpa</h1>
     <p class="subtitle">Made with love</p>
 
-    <label>Validation Sheet URL</label>
-    <input id="validation" placeholder="Paste validation sheet link">
+    <!-- TAB 1: AUTOMATION UI -->
+    <div id="automation" class="page">
 
-    <label>Workbook Sheet URL</label>
-    <input id="workbook" placeholder="Paste workbook sheet link">
+        <label>Validation Sheet URL</label>
+        <input id="validation" placeholder="Paste validation sheet link">
 
-    <button id="runBtn" onclick="runAutomation()">🚀 Run Automation</button>
+        <label>Workbook Sheet URL</label>
+        <input id="workbook" placeholder="Paste workbook sheet link">
+
+        <button id="runBtn" onclick="runAutomation()">🚀 Run Automation</button>
+    </div>
+
+    <!-- TAB 2: DPM UI -->
+    <div id="dpm" class="page" style="display:none;">
+
+        <label>Google Sheet URL</label>
+        <input id="dpmSheet" placeholder="Paste sheet link">
+
+        <button id="dpmBtn" onclick="runDpmMapping()">🧠 Generate Device Mapping</button>
+    </div>
 
     <pre id="result">Waiting for input...</pre>
 
@@ -25,19 +44,26 @@
 </div>
 
 <script>
+
+function switchTab(tab, element) {
+
+    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+    document.getElementById(tab).style.display = 'block';
+
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    element.classList.add('active');
+
+    document.getElementById("result").textContent = "Waiting for input...";
+}
+
 async function runAutomation() {
     const validationUrl = document.getElementById("validation").value;
     const workbookUrl = document.getElementById("workbook").value;
     const output = document.getElementById("result");
-    const btn = document.getElementById("runBtn");
 
-    if (!validationUrl || !workbookUrl) {
-        alert("⚠ Please enter both sheet URLs");
-        return;
-    }
+    if (!validationUrl || !workbookUrl) return alert("⚠ Please enter both sheet URLs");
 
     output.textContent = "⏳ Running automation... please wait...";
-    btn.disabled = true;
 
     try {
         const res = await fetch("/api/run", {
@@ -46,15 +72,29 @@ async function runAutomation() {
             body: JSON.stringify({ validationUrl, workbookUrl })
         });
 
-        const text = await res.text();
-        output.textContent = text;
-
+        output.textContent = await res.text();
     } catch (err) {
         output.textContent = "❌ Error: " + err.message;
     }
-
-    btn.disabled = false;
 }
+
+async function runDpmMapping() {
+    const sheetUrl = document.getElementById("dpmSheet").value;
+    const output = document.getElementById("result");
+    
+    if (!sheetUrl) return alert("⚠ Please enter Sheet URL");
+
+    output.textContent = "⏳ Fetching mapping... please wait...";
+
+    try {
+        const res = await fetch("/dpm/group");
+        const data = await res.json();
+        output.textContent = data.join("\n");
+    } catch (err) {
+        output.textContent = "❌ Error: " + err.message;
+    }
+}
+
 </script>
 
 </body>
