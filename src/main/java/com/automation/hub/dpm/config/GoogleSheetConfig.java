@@ -15,21 +15,48 @@ import java.util.List;
 
 @Configuration
 public class GoogleSheetConfig {
-	@Value("${google.sheet.credentials}")
-    private String credentialsPath;
+//	@Value("${google.sheet.credentials}")
+//    private String credentialsPath;
+//
+//    @Bean(name = "dpmSheetsClient")
+//    public Sheets sheetsService() throws IOException, GeneralSecurityException {
+//
+//        GoogleCredentials credentials = GoogleCredentials.fromStream(
+//                new FileInputStream(credentialsPath)
+//        ).createScoped(List.of("https://www.googleapis.com/auth/spreadsheets"));
+//
+//        return new Sheets.Builder(
+//                GoogleNetHttpTransport.newTrustedTransport(),
+//                GsonFactory.getDefaultInstance(),
+//                new HttpCredentialsAdapter(credentials)
+//        ).setApplicationName("DPM Feature Sheets Client")
+//         .build();
+//    }
+	
+	 @Bean(name = "dpmSheetsClient")
+	    public Sheets sheetsService() throws IOException, GeneralSecurityException {
 
-    @Bean(name = "dpmSheetsClient")
-    public Sheets sheetsService() throws IOException, GeneralSecurityException {
+	        String credentialsPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
+	        FileInputStream serviceAccountStream;
 
-        GoogleCredentials credentials = GoogleCredentials.fromStream(
-                new FileInputStream(credentialsPath)
-        ).createScoped(List.of("https://www.googleapis.com/auth/spreadsheets"));
+	        if (credentialsPath != null && !credentialsPath.isEmpty()) {
+	            System.out.println("🔹 [DPM] Using cloud credentials from: " + credentialsPath);
+	            serviceAccountStream = new FileInputStream(credentialsPath);
+	        } else {
+	            System.out.println("🔹 [DPM] Using LOCAL credentials file");
+	            serviceAccountStream = new FileInputStream("src/main/resources/credentials.json");
+	        }
 
-        return new Sheets.Builder(
-                GoogleNetHttpTransport.newTrustedTransport(),
-                GsonFactory.getDefaultInstance(),
-                new HttpCredentialsAdapter(credentials)
-        ).setApplicationName("DPM Feature Sheets Client")
-         .build();
-    }
+	        GoogleCredentials credentials = GoogleCredentials
+	                .fromStream(serviceAccountStream)
+	                .createScoped(List.of("https://www.googleapis.com/auth/spreadsheets"));
+
+	        return new Sheets.Builder(
+	                GoogleNetHttpTransport.newTrustedTransport(),
+	                GsonFactory.getDefaultInstance(),
+	                new HttpCredentialsAdapter(credentials)
+	        )
+	        .setApplicationName("DPM Feature Sheets Client")
+	        .build();
+	    }
 }
