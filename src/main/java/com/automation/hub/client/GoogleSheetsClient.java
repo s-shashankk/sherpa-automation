@@ -23,24 +23,20 @@ import java.util.List;
 
 public class GoogleSheetsClient {
 	
-	  private static Sheets sheetsService;
+	 private static Sheets sheetsService;
 
-	  public static Sheets getSheetsService() throws Exception {
+	    public static Sheets getSheetsService() throws Exception {
 	        if (sheetsService == null) {
 
-	            // ✅ Try to read credentials JSON from environment (for Railway)
 	            String credentialsJson = System.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON");
 	            InputStream serviceAccountStream;
 
 	            if (credentialsJson != null && !credentialsJson.isEmpty()) {
-	                System.out.println("🔹 Using credentials from ENV (Railway)");
-	                serviceAccountStream =
-	                        new ByteArrayInputStream(credentialsJson.getBytes(StandardCharsets.UTF_8));
+	                System.out.println("🔹 Using ENV credentials");
+	                serviceAccountStream = new ByteArrayInputStream(credentialsJson.getBytes(StandardCharsets.UTF_8));
 	            } else {
-	                // ✅ Fallback for LOCAL dev with file
-	                System.out.println("🔹 Using LOCAL credentials file");
-	                serviceAccountStream =
-	                        new FileInputStream("src/main/resources/credentials.json");
+	                System.out.println("🔹 Using LOCAL file credentials");
+	                serviceAccountStream = new FileInputStream("src/main/resources/credentials.json");
 	            }
 
 	            GoogleCredentials googleCredentials = GoogleCredentials
@@ -52,10 +48,16 @@ public class GoogleSheetsClient {
 	                    GsonFactory.getDefaultInstance(),
 	                    new HttpCredentialsAdapter(googleCredentials)
 	            )
-	            .setApplicationName("Automation Hub")
-	            .build();
+	                    .setApplicationName("Automation Hub")
+	                    .build();
 	        }
 	        return sheetsService;
+	    }
+
+	    // ⭐ Reset client before each automation so sheet switching works
+	    public static void reset() {
+	        System.out.println("♻ Resetting Google Sheets Client...");
+	        sheetsService = null;
 	    }
 
 	    public static List<List<Object>> readSheet(String spreadsheetId, String range) throws Exception {
