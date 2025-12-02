@@ -18,15 +18,7 @@ import java.util.*;
 @Service
 public class GoogleSheetService {
 
-    private final DpmAutomationService dpmAutomationService;
-	 @Value("${google.sheet.id}")
-	    private String sheetId;
-
-	    private Sheets sheets;
-
-    GoogleSheetService(DpmAutomationService dpmAutomationService) {
-        this.dpmAutomationService = dpmAutomationService;
-    }
+	 private Sheets sheets;
 
 	    // ⭐ Lazy load Sheets client (works local + cloud)
 	    private Sheets getSheets() throws Exception {
@@ -36,21 +28,38 @@ public class GoogleSheetService {
 	        return sheets;
 	    }
 
-	    public List<String> groupDpmData() throws Exception {
+	    /**
+	     * Build mapping from DPM → [deviceId1, deviceId2, ...]
+	     * using a dynamic sheetId passed from the controller.
+	     */
+	    public List<String> groupDpmData(String sheetId) throws Exception {
+
+	        // Make sure we don't reuse an old cached client
+	        GoogleSheetsClient.reset();
 
 	        String range = "Sheet1!A3:AF";
-	        ValueRange response = getSheets().spreadsheets().values().get(sheetId, range).execute();
+
+	        ValueRange response = getSheets()
+	                .spreadsheets()
+	                .values()
+	                .get(sheetId, range)
+	                .execute();
+
 	        List<List<Object>> rows = response.getValues();
 
 	        Map<String, Set<String>> map = new LinkedHashMap<>();
 
-	        for (List<Object> row : rows) {
+	        if (rows != null) {
+	            for (List<Object> row : rows) {
 
-	            String dpm = row.size() > 31 ? row.get(31).toString().trim() : "";
-	            String deviceId = row.size() > 10 ? row.get(10).toString().trim() : "";
+	                // AF column index = 31 (0-based)
+	                String dpm = row.size() > 31 ? row.get(31).toString().trim() : "";
+	                // Kunal gave: deviceId at column K (index 10)
+	                String deviceId = row.size() > 10 ? row.get(10).toString().trim() : "";
 
-	            if (!dpm.isEmpty() && !deviceId.isEmpty()) {
-	                map.computeIfAbsent(dpm, k -> new LinkedHashSet<>()).add(deviceId);
+	                if (!dpm.isEmpty() && !deviceId.isEmpty()) {
+	                    map.computeIfAbsent(dpm, k -> new LinkedHashSet<>()).add(deviceId);
+	                }
 	            }
 	        }
 

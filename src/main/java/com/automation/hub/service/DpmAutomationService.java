@@ -6,58 +6,80 @@ import com.automation.hub.logic.WorkbookReader;
 import com.automation.hub.logic.WorkbookUpdater;
 import com.automation.hub.model.ValidationEntry;
 import com.google.api.services.sheets.v4.model.ValueRange;
-
+import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
-
-import org.springframework.stereotype.Service;
 @Service
 public class DpmAutomationService {
 	//private final String validationSheetId = "1PhVuBhkLYpBGmTeGOcfPC8ZCN0b-YP11Mw9cqdoEqaw";
   //  private final String workbookSheetId   = "1-1MuTCEzHCNEpZsOMNrD4Z9JVMZZMCc23r94GnC9Q1U";
 
-	public String runAutomation(String validationUrl, String workbookUrl) throws Exception {
+	 public String runAutomation(String validationUrl, String workbookUrl) throws Exception {
 
-        // ⭐ Force client reset so every run uses the new sheetId
-        GoogleSheetsClient.reset();
+	        String validationSheetId = extractSheetId(validationUrl);
+	        String workbookSheetId   = extractSheetId(workbookUrl);
 
-        String validationSheetId = extractSheetId(validationUrl);
-        String workbookSheetId   = extractSheetId(workbookUrl);
+	        // ⛔ FIX — Clear cached sheet client so new link loads fresh data
+	        GoogleSheetsClient.reset();
 
-        System.out.println("📄 Validation Sheet: " + validationSheetId);
-        System.out.println("📄 Workbook Sheet: " + workbookSheetId);
+	        System.out.println("📄 Validation Sheet: " + validationSheetId);
+	        System.out.println("📄 Workbook Sheet: " + workbookSheetId);
 
-        // 1) Read validation sheet
-        List<List<Object>> validationRows = GoogleSheetsClient.readSheet(validationSheetId, "B7:T");
-        List<String> validationNotes      = GoogleSheetsClient.readNotesForRange(validationSheetId, "B7:B");
+	        // 1️⃣ Read validation sheet
+	        List<List<Object>> validationRows = GoogleSheetsClient.readSheet(validationSheetId, "B7:T");
 
-        // 2) Parse validation mapping data
-        List<ValidationEntry> parsedEntries = ValidationParser.parse(validationRows, validationNotes);
+	        // 2️⃣ Get notes column (for multiple carriers in one row)
+	        List<String> validationNotes = GoogleSheetsClient.readNotesForRange(validationSheetId, "B7:B");
 
-        // 3) Build mapping
-        Map<String, String> dpmMap = MappingEngine.buildDpmMap(parsedEntries);
+	        // 3️⃣ Parse into objects
+	        List<ValidationEntry> parsedEntries = ValidationParser.parse(validationRows, validationNotes);
 
-        // 4) Read workbook sheet
-        List<List<Object>> workbookRows = GoogleSheetsClient.readSheet(workbookSheetId, "A3:AX");
+	        // 4️⃣ Create mapping table
+	        Map<String, String> dpmMap = MappingEngine.buildDpmMap(parsedEntries);
 
-        // 5) Build unique lookup keys from workbook
-        List<String> workbookKeys = WorkbookReader.buildWorkbookKeys(workbookRows);
+	        // 5️⃣ Read workbook sheet values
+	        List<List<Object>> workbookRows = GoogleSheetsClient.readSheet(workbookSheetId, "A3:AX");
 
-        // 6) Generate update values
-        ValueRange updateValues = WorkbookUpdater.generateDpmUpdates(workbookKeys, dpmMap);
+	        // 6️⃣ Convert workbook rows to lookup keys
+	        List<String> workbookKeys = WorkbookReader.buildWorkbookKeys(workbookRows);
 
-        // 7) Write back to workbook
-        GoogleSheetsClient.writeColumn(workbookSheetId, "AF3:AF", updateValues);
+	        // 7️⃣ Generate sheet Update values
+	        ValueRange updateValues = WorkbookUpdater.generateDpmUpdates(workbookKeys, dpmMap);
 
-        return "✔ DPM Automation Completed Successfully.\n"
-                + "Validation rows: " + validationRows.size() + "\n"
-                + "Mapped entries: " + dpmMap.size() + "\n"
-                + "Workbook rows processed: " + workbookRows.size();
-    }
+	        // 8️⃣ Write back to AF column
+	        GoogleSheetsClient.writeColumn(workbookSheetId, "AF3:AF", updateValues);
 
-    private String extractSheetId(String url) {
-        return url.substring(url.indexOf("/d/") + 3, url.indexOf("/edit"));
-    }
+	        return "✔ DPM Mapping Completed Successfully!\n"
+	                + "📌 Validation rows read: " + validationRows.size() + "\n"
+	                + "📌 Mapping entries generated: " + dpmMap.size() + "\n"
+	                + "📌 Workbook rows updated: " + workbookRows.size();
+	    }
+
+	    private String extractSheetId(String url) {
+	    	 if (url == null || url.isBlank()) {
+	    	        throw new IllegalArgumentException("❌ Sheet URL is empty");
+	    	    }
+
+	    	    // Case 1: Standard format → /d/<ID>/
+	    	    if (url.contains("/d/")) {
+	    	        int start = url.indexOf("/d/") + 3;
+
+	    	        // find next slash after the ID
+	    	        int end = url.indexOf("/", start);
+
+	    	        if (end > start) {
+	    	            return url.substring(start, end);
+	    	        }
+	    	    }
+
+	    	    // Case 2: Drive share format → ?id=<ID>
+	    	    if (url.contains("id=")) {
+	    	        return url.substring(url.indexOf("id=") + 3).trim();
+	    	    }
+
+	    	    // Case 3: User pasted only sheet ID already
+	    	    return url.trim();
+	    }
 
 
 

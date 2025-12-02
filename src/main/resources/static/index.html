@@ -87,7 +87,7 @@ async function runDpmMapping() {
     output.textContent = "⏳ Fetching mapping... please wait...";
 
     try {
-        const res = await fetch("/dpm/group");
+		const res = await fetch(`/dpm/group?sheet=${encodeURIComponent(sheetUrl)}`);
         const data = await res.json();
         output.textContent = data.join("\n");
     } catch (err) {

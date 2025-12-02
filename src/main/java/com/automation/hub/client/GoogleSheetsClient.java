@@ -26,21 +26,22 @@ public class GoogleSheetsClient {
 	 private static Sheets sheetsService;
 
 	    public static Sheets getSheetsService() throws Exception {
+
 	        if (sheetsService == null) {
 
 	            String credentialsJson = System.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON");
-	            InputStream serviceAccountStream;
+	            InputStream stream;
 
 	            if (credentialsJson != null && !credentialsJson.isEmpty()) {
 	                System.out.println("🔹 Using ENV credentials");
-	                serviceAccountStream = new ByteArrayInputStream(credentialsJson.getBytes(StandardCharsets.UTF_8));
+	                stream = new ByteArrayInputStream(credentialsJson.getBytes(StandardCharsets.UTF_8));
 	            } else {
 	                System.out.println("🔹 Using LOCAL file credentials");
-	                serviceAccountStream = new FileInputStream("src/main/resources/credentials.json");
+	                stream = new FileInputStream("src/main/resources/credentials.json");
 	            }
 
 	            GoogleCredentials googleCredentials = GoogleCredentials
-	                    .fromStream(serviceAccountStream)
+	                    .fromStream(stream)
 	                    .createScoped(Collections.singleton(SheetsScopes.SPREADSHEETS));
 
 	            sheetsService = new Sheets.Builder(
@@ -48,15 +49,15 @@ public class GoogleSheetsClient {
 	                    GsonFactory.getDefaultInstance(),
 	                    new HttpCredentialsAdapter(googleCredentials)
 	            )
-	                    .setApplicationName("Automation Hub")
-	                    .build();
+	            .setApplicationName("Automation Hub")
+	            .build();
 	        }
 	        return sheetsService;
 	    }
 
-	    // ⭐ Reset client before each automation so sheet switching works
+	    /** ⭐ RESET before every new automation run */
 	    public static void reset() {
-	        System.out.println("♻ Resetting Google Sheets Client...");
+	        System.out.println("♻ Resetting cached Google Sheets Client...");
 	        sheetsService = null;
 	    }
 
@@ -66,7 +67,9 @@ public class GoogleSheetsClient {
 	        return response.getValues();
 	    }
 
+	    /** ⭐ Read NOTES in a range (needed for multi-carrier mapping) */
 	    public static List<String> readNotesForRange(String spreadsheetId, String rangeA1) throws Exception {
+
 	        Sheets service = getSheetsService();
 
 	        Spreadsheet spreadsheet = service.spreadsheets()
