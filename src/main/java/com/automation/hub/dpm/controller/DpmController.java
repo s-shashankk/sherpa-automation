@@ -14,30 +14,37 @@ public class DpmController {
 	        this.service = service;
 	    }
 
+
 	    @GetMapping("/group")
 	    public List<String> getGroupedDetails(@RequestParam("sheet") String sheetUrl) throws Exception {
 
 	        String sheetId = extractSheetId(sheetUrl);
-	        System.out.println("✔ Using Sheet ID: " + sheetId);
+	        String gid      = extractGid(sheetUrl);
 
-	        return service.groupDpmData(sheetId);
+	        System.out.println("✔ Sheet ID: " + sheetId);
+	        System.out.println("✔ Active Sheet GID: " + gid);
+
+	        return service.groupDpmData(sheetId, gid);
 	    }
 
+	    /** Extract sheet ID from Google Sheets URL */
 	    private String extractSheetId(String url) {
-
-	        // Case 1: Normal google sheet link `/d/{id}/edit`
 	        if (url.contains("/d/")) {
 	            int start = url.indexOf("/d/") + 3;
 	            int end = url.indexOf("/", start);
 	            return url.substring(start, end);
 	        }
-
-	        // Case 2: ?id=
 	        if (url.contains("id=")) {
 	            return url.substring(url.indexOf("id=") + 3);
 	        }
-
-	        // Case 3: Already ID
 	        return url;
+	    }
+
+	    /** Extract the GID (sheet tab identifier) */
+	    private String extractGid(String url) {
+	        if (url.contains("gid=")) {
+	            return url.substring(url.indexOf("gid=") + 4).trim();
+	        }
+	        return null; // fallback if not present
 	    }
 }
